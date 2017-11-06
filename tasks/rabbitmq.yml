@@ -27,7 +27,7 @@
 - include: configure.yml
 
 - include: configure-cluster.yml
-  when: rabbitmq_cluster
+  #when: rabbitmq_cluster
 
 - name: start rabbitmq server
   service:
