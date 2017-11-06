@@ -1,52 +1,27 @@
 ---
+rabbitmq_cluster: False
 
-rabbitmq_erlang_cookie: 1qa2ws3ed
-rabbitmq_ulimit_open_files: 1024
-rabbitmq_memory_high_watermark: 0.4
-rabbitmq_create_cluster: no
-rabbitmq_cluster_master: localhost
-rabbitmq_vhosts: []
-rabbitmq_use_longname: 'false'
+rabbitmq_cluster_master: "rabbit@{{ hostvars[ansible_play_hosts.0].ansible_hostname }}"
 
-rabbitmq_logrotate_period: weekly
-rabbitmq_logrotate_amount: 20
+rabbitmq_erlang_cookie_file: /var/lib/rabbitmq/.erlang.cookie
 
-rabbitmq_amqp_port: 5672
-rabbitmq_epmd_port: 4369
-rabbitmq_node_port: 25672
-
-rabbitmq_instant_queues: false
-rabbitmq_instant_shovels: false
+rabbitmq_plugin_dir: "/usr/lib/rabbitmq/lib/rabbitmq_server-{{ rabbitmq_version.split('-').0 }}/plugins"
 
 rabbitmq_plugins:
-  - rabbitmq_management
-  - rabbitmq_management_agent
+- rabbitmq_management
+
+rabbitmq_plugins_disabled: []
 
 rabbitmq_users:
-  - user: admin
-    password: admin
-    vhost: /
-    configure_priv: .*
-    read_priv: .*
-    write_priv: .*
-    tags: administrator
+- user: admin
+  password: admin
+  tags: administrator
 
-rabbitmq_users_removed:
-  - guest
+rabbitmq_users_absent:
+- guest
 
-rabbitmq_vhosts_queues:
-  - vhost_name:
-    queues: []
-    user:
-    password:
-    durable: 'true'
+rabbitmq_version: 3.6.6-1
 
-##   Requares additional plugin enabled: rabbitmq_shovel
-##   See https://www.rabbitmq.com/shovel-dynamic.html for json format
-rabbitmq_shovels:
-  -
-    shovel_name:
-    shovel_json: ''
-  -
-    shovel_name:
-    shovel_json: ''
+rabbitmq_vhosts: []
+
+rabbitmq_vhosts_absent: []

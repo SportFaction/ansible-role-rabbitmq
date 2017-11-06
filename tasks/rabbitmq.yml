@@ -1,48 +1,45 @@
 ---
-# RabbitMQ user and vhost management
+- name: import erlang rpm key
+  apt_key:
+    url: "https://packages.erlang-solutions.com/debian/erlang_solutions.asc"
 
-- name: Ensure the users is removed
-  rabbitmq_user:
-    user: "{{ item }}"
-    state: absent
-  with_items: "{{ rabbitmq_users_removed }}"
+- name: add erlang solutions repository
+  apt_repository:
+    repo: "deb https://packages.erlang-solutions.com/{{ ansible_distribution | lower }} {{ ansible_distribution_release | lower }} contrib"
 
-- name: Ensure the vhosts is present
-  rabbitmq_vhost:
-    name: "{{ item }}"
-    state: present
-  with_items: "{{ rabbitmq_vhosts }}"
+- name: install erlang
+  apt:
+    name: erlang
 
-- name: Ensure the users is present
-  rabbitmq_user:
-    user: "{{ item.user }}"
-    password: "{{ item.password }}"
-    configure_priv: "{{ item.configure_priv|default('.*') }}"
-    read_priv: "{{ item.read_priv|default('.*') }}"
-    write_priv: "{{ item.write_priv|default('.*') }}"
-    vhost: "{{ item.vhost|default('/') }}"
-    permissions: "{{ item.permissions|default(omit) }}"
-    tags: "{{ item.tags|default('') }}"
-  with_items: "{{ rabbitmq_users }}"
-  no_log: true
-  tags: [configuration,rabbitmq]
+- name: import rabbitmq rpm key
+  apt_key:
+    url: https://www.rabbitmq.com/rabbitmq-release-signing-key.asc
 
-- name: Ensure rabbitmqadmin script is present
-  copy:
-    src: rabbitmqadmin
-    dest: /usr/local/bin
-    mode: 0755
-  when: "{{ rabbitmq_instant_queues }}"
+- name: download rabbitmq package
+  get_url:
+    url: "https://www.rabbitmq.com/releases/rabbitmq-server/v{{ rabbitmq_version.split('-')[0] }}/rabbitmq-server_{{ rabbitmq_version }}{% if rabbitmq_version | version_compare('3.6.6', '>=') %}{% endif %}_all.deb"
+    dest: "/usr/src/rabbitmq-server-{{ rabbitmq_version }}.deb"
 
-- name: Ensure requared queues are present
-  shell: rabbitmqadmin --username={{ item.0.user }} --password={{ item.0.password }} --vhost={{ item.0.vhost_name }} declare queue name={{ item.1 }} durable={{ item.0.durable }}
-  with_subelements:
-    - "{{ rabbitmq_vhosts_queues }}"
-    - queues
-  when: rabbitmq_instant_queues
+- name: install rabbitmq
+  apt:
+    deb: "/usr/src/rabbitmq-server-{{ rabbitmq_version }}.deb"
 
-- name: Make a shovle for for queues
-  shell: rabbitmqctl set_parameter shovel {{ item.shovel_name }} '{{ item.shovel_json }}'
-  with_items:
-    - "{{ rabbitmq_shovels }}"
-  when: rabbitmq_instant_shovels
+- include: configure.yml
+
+- include: configure-cluster.yml
+  when: rabbitmq_cluster
+
+- name: start rabbitmq server
+  service:
+    name: rabbitmq-server
+    enabled: True
+    state: started
+
+- include: vhosts.yml
+
+- include: users.yml
+
+- include: plugins.yml
+
+- include: cluster.yml
+  when: rabbitmq_cluster and rabbitmq_nodename != rabbitmq_cluster_master
